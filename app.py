@@ -32,13 +32,7 @@ class Admin(db.Model):
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
         return Admin(Username=username, Password=hashed_pw)
 
-# @app.before_first_request
-# def init_db():
-#     db.create_all()
-#     if not Admin.query.filter_by(Username='admin').first():
-#         admin = Admin.create_admin('BitMik', 'Super_hard_password')
-#         db.session.add(admin)
-#         db.session.commit()
+
 
 @app.route('/')
 def index():
