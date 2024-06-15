@@ -1,14 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///vssutConfession.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+
 db = SQLAlchemy(app)
 bcrypt = Bcrypt()
+migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
@@ -26,12 +30,12 @@ class Admin(db.Model):
     Id = db.Column(db.Integer, primary_key=True)
     Username = db.Column(db.String(80), unique=True, nullable=False)
     Password = db.Column(db.String(200), nullable=False)
+    is_logged_in = db.Column(db.Boolean, default=False)
 
     @staticmethod
     def create_admin(username, password):
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
         return Admin(Username=username, Password=hashed_pw)
-
 
 
 @app.route('/')
@@ -58,7 +62,14 @@ def login():
         username = request.form['username']
         password = request.form['password']
         admin = Admin.query.filter_by(Username=username).first()
-        if admin and password == admin.Password:
+
+        if Admin.query.filter_by(is_logged_in=True).first():
+            flash('Another admin is already logged in.', 'danger')
+            return render_template('loginPage.html')
+
+        elif admin and password == admin.Password:
+            admin.is_logged_in = True
+            db.session.commit()
             session['admin'] = username
             return redirect(url_for('admin'))
             
@@ -68,7 +79,6 @@ def login():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    # username=Admin.query.filter_by(Username='admin').first()
     if 'admin' not in session:
         return redirect(url_for('login'))
     
@@ -92,7 +102,12 @@ def admin():
     
 @app.route('/logout')
 def logout():
-    session.pop('admin', None)
+    if 'admin' in session:
+        admin = Admin.query.filter_by(Username=session['admin']).first()
+        if admin:
+            admin.is_logged_in = False
+            db.session.commit()
+        session.pop('admin', None)
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
