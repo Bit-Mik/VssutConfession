@@ -9,3 +9,7 @@ $(document).ready(function(){
       $("#approved").toggle();
     });
   });
+
+window.addEventListener('beforeunload', function (e) {
+    navigator.sendBeacon('/logout');
+});

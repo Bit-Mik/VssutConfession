@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 
 app = Flask(__name__)
@@ -13,6 +14,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 bcrypt = Bcrypt()
 migrate = Migrate(app, db)
+csrf = CSRFProtect()
 
 with app.app_context():
     db.create_all()
@@ -67,7 +69,7 @@ def login():
             flash('Another admin is already logged in.', 'danger')
             return render_template('loginPage.html')
 
-        elif admin and password == admin.Password:
+        if admin and password == admin.Password:
             admin.is_logged_in = True
             db.session.commit()
             session['admin'] = username
@@ -100,7 +102,8 @@ def admin():
     allApprovedConfessions = Confessions.query.filter_by(Approved=True).order_by(Confessions.Id.desc()).all()
     return render_template('admin.html', admin=session['admin'],allConfessions=allConfessions,a_allConfession=allApprovedConfessions)
     
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
+@csrf.exempt
 def logout():
     if 'admin' in session:
         admin = Admin.query.filter_by(Username=session['admin']).first()

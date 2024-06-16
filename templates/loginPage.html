@@ -22,7 +22,7 @@
     </form>
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        <ul class="flashes">
+        <ul class="flashes" style="padding: 1rem;">
         {% for category, message in messages %}
           <li class="{{ category }}">{{ message }}</li>
         {% endfor %}
